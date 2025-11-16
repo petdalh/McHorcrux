@@ -4,7 +4,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 try:
-    from mcsimpy.simulator import CSAD_DP_6DOF
+    from mcsimpy.simulator.csad import CSAD_DP_6DOF
     from mcsimpy.waves import JONSWAP, WaveLoad
 except ImportError as e:
     raise ImportError("This script requires the 'mclsimpy' package. "

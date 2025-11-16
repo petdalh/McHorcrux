@@ -151,3 +151,7 @@ __pycache__/
 *.pyc
 *.pyo
 *.pyd
+
+mclsimpy/
+src/mclsimpy/
+**/mclsimpy/
