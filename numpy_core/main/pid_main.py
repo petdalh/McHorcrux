@@ -2,7 +2,6 @@
 import time
 import numpy as np
 import matplotlib.pyplot as plt
-
 try:
     from mcsimpy.simulator.csad import CSAD_DP_6DOF
     from mcsimpy.waves import JONSWAP, WaveLoad

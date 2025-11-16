@@ -69,10 +69,10 @@ import numpy as np
 import matplotlib.pyplot as plt
 import pygame
 
-from mcsimpy.simulator.csad import CSAD_DP_6DOF
-from mcsimpy.waves.wave_loads import WaveLoad
-from mcsimpy.waves.wave_spectra import JONSWAP
-from mcsimpy.utils import three2sixDOF, six2threeDOF, Rz, pipi
+from mclsimpy.simulator.csad import CSAD_DP_6DOF
+from mclsimpy.waves.wave_loads import WaveLoad
+from mclsimpy.waves.wave_spectra import JONSWAP
+from mclsimpy.utils import three2sixDOF, six2threeDOF, Rz, pipi
 
 from numpy_core.ref_gen.reference_filter import ThrdOrderRefFilter
 
@@ -543,6 +543,13 @@ class McGym:
         if not self.render_on or self.screen is None:
             return
 
+        # Handle OS events so the window updates properly
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                self.render_on = False
+                pygame.quit()
+                return
+
         self.screen.fill((20, 20, 20))
         self._draw_grid()
         if self.goal is not None or self.goal_func is not None:
@@ -552,7 +559,11 @@ class McGym:
         self._draw_boat()
 
         pygame.display.flip()
-        self.clock.tick(1000)
+
+        # ~real-time speed: one frame per step
+        target_fps = max(5, int(round(1.0 / self.dt)))
+        self.clock.tick(4*target_fps)
+
 
     def _draw_grid(self):
         """Draw a basic grid on the pygame display."""
