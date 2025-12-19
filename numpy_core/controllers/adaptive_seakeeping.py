@@ -153,3 +153,39 @@ class MRACShipController:
         # 4) Construct 3-DOF action = [Fx, Fy, Mz]
         action = np.array([surge_force, 0.0, yaw_torque])
         return action
+    
+    def compute_action_minimal(self, state, psi_d, u_d = None):
+        """
+        Minimal controller interface using only heading reference.
+        Args:
+            state   : dict returned by env.get_state():
+                      {
+                        "boat_position": [n, e],
+                        "boat_orientation": yaw_radians,
+                        "velocities": [u, v, r],  # forward, lateral, yaw rate
+                        ...
+                      }
+            psi_d : desired heading in radians
+
+        Returns:
+            action (np.array of shape (3,)): [Fx, Fy, Mz]
+        """
+        n, e = state["eta"][:2]
+        psi = state["eta"][-1]  # heading, radians
+        vel = state["nu"]        # [u, v, r]
+        u = vel[0]  # forward speed in m/s
+
+        if u_d is not None:
+            self.surge_pid.desired_speed = u_d
+
+        # 1) Use MRAC heading controller
+        delta = self.heading_mrac.update(psi, psi_d)
+        yaw_torque = self.heading_mrac.get_yaw_torque(delta)
+
+        # 2) Use surge PID for forward speed
+        surge_force = self.surge_pid.compute_force(u)
+
+
+        # 3) Construct 3-DOF action = [Fx, Fy, Mz]
+        action = np.array([surge_force, 0.0, yaw_torque])
+        return action

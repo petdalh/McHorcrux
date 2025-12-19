@@ -1,31 +1,82 @@
 from numpy_core.gym.mc_gym_csad_numpy import McGym
 import numpy as np
 import pygame
+import matplotlib.pyplot as plt
+
 
 class ColregsGym(McGym):
-    """
-    Extension of McGym that adds a simple COLREGs Rule 14 head-on target vessel.
-
-    Own ship dynamics, wave loads, goal, obstacles etc are all handled by McGym.
-    This class adds:
-      - a kinematic "incoming vessel" on a straight, reciprocal course
-      - head-on collision detection (circle vs. own hull)
-      - optional time limit for the head-on scenario
-      - target_eta in the state dict
-      - drawing of the incoming vessel in pygame
-    """
-
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
         # COLREGs scenario parameters
         self.head_on_mode = False
-        self.head_on_init = None       # np.array([n, e, psi])
-        self.head_on_speed = 0.0       # [m/s]
-        self.head_on_radius = 0.0      # [m]
-        self.head_on_max_time = None   # [s]
-        self.target_vessel_eta = None  # np.array([n, e, psi])
-        self.target_vessel_traj = []   # for plotting
+        self.head_on_init = None       
+        self.head_on_speed = 0.0       
+        self.head_on_radius = 0.0      
+        self.head_on_max_time = None   
+        self.target_vessel_eta = None  
+        self.target_vessel_traj = []   
+
+        # For dense reward tracking
+        self.prev_dist_to_goal = None
+
+    def reset(self):
+        """Reset environment and initialize progress tracking."""
+        super().reset()
+        if self.head_on_mode and self.head_on_init is not None:
+            self.target_vessel_eta = self.head_on_init.copy()
+            self.target_vessel_traj = []
+        
+        # Initialize distance to goal for progress reward
+        state = self.get_state()
+        n, e = state["eta"][:2]
+        gn, ge = self.goal[:2]
+        self.prev_dist_to_goal = np.hypot(gn - n, ge - e)
+        
+        return state
+
+    def compute_reward(self, action, prev_action):
+        """
+        DENSE REWARD FUNCTION
+        Overwrites the McGym placeholder to provide feedback every time-step.
+        """
+        reward = 0.0
+        state = self.get_state()
+        eta = state["eta"]
+        nu = state["nu"] # [u, v, r]
+        n, e = eta[0], eta[1]
+        
+        # 1. Progress Reward (Directional Feedback)
+        # Reward the agent for every meter it gets closer to the goal
+        gn, ge = self.goal[:2]
+        curr_dist = np.hypot(gn - n, ge - e)
+        dist_change = self.prev_dist_to_goal - curr_dist
+        
+        # We multiply by a factor (e.g., 20) so the agent "feels" the movement
+        reward += dist_change * 20.0 
+        self.prev_dist_to_goal = curr_dist
+
+        # 2. COLREGs Rule 14 "Starboard Bias"
+        # In a head-on situation, ships should turn to starboard (right).
+        # We penalize turning to port (left) when the target is within a 'reaction' distance.
+        if self.head_on_mode and self.target_vessel_eta is not None:
+            tn, te = self.target_vessel_eta[:2]
+            dist_to_target = np.hypot(tn - n, te - e)
+            
+            # If target is within 15m, penalize negative yaw rate (turning port)
+            # In most marine models, positive 'r' (nu[2]) is a starboard turn.
+            yaw_rate = nu[2]
+            if dist_to_target < 15.0 and yaw_rate < -0.05:
+                reward -= 0.1  # Small penalty for "illegal" turn direction
+
+        # 3. Comfort/Efficiency Penalties
+        # Small penalty for high control effort (prevents jerky movements)
+        # reward -= 0.005 * np.linalg.norm(action - prev_action)
+        
+        # Small living penalty to encourage reaching the goal faster
+        reward -= 0.01
+
+        return reward
 
     # -------------------------
     # Scenario configuration
@@ -96,17 +147,6 @@ class ColregsGym(McGym):
             simtime=simtime,
         )
 
-    # -------------------------
-    # Lifecycle overrides
-    # -------------------------
-    def reset(self):
-        """Reset environment and incoming vessel."""
-        super().reset()
-
-        if self.head_on_mode and self.head_on_init is not None:
-            self.target_vessel_eta = self.head_on_init.copy()
-            self.target_vessel_traj = []
-
     def step(self, action):
         """Advance both the own ship and the incoming vessel."""
         if self.head_on_mode and self.target_vessel_eta is not None:
@@ -141,12 +181,12 @@ class ColregsGym(McGym):
         """
         Extend the base termination logic with head-on collision and time limit.
         """
-        # 1) Let the base class handle goal and static obstacles
+        # Let the base class handle goal and static obstacles
         done, info = super()._check_termination(boat_pos)
         if done:
             return done, info
 
-        # 2) Head-on logic
+        # Head-on logic
         if not self.head_on_mode:
             return False, {}
 
@@ -239,7 +279,7 @@ class ColregsGym(McGym):
         if not self.final_plot:
             return
 
-        # --- Main trajectory figure ---
+        # Main trajectory figure 
         if self.goal_func is not None or self.goal is not None:
             traj = np.array(self.trajectory)
             plt.figure(figsize=(8, 4))
@@ -268,61 +308,3 @@ class ColregsGym(McGym):
             plt.legend(loc='upper right', fontsize='small', scatterpoints=1, markerscale=0.1)
             plt.grid(True)
             plt.show()
-
-        # --- Four-corner plots unchanged ---
-        if self.four_corner_test:
-            traj = np.array(self.trajectory)
-            true_vel = np.array(self.true_vel)
-
-            plt.figure(figsize=(8, 4))
-            plt.plot(traj[:, 1], traj[:, 0], 'b-', label="Boat Trajectory")
-            plt.plot(self.store_xd[:, 1], self.store_xd[:, 0], 'g-', label="Desired Trajectory")
-            plt.xlim([0, self.grid_width])
-            plt.ylim([0, self.grid_height])
-            plt.xlabel("East [m]")
-            plt.ylabel("North [m]")
-            plt.title("Desired Trajectory and real trajectory ({}×{} Domain)".format(self.grid_width, self.grid_height))
-            plt.legend(loc='upper right', fontsize='small', scatterpoints=1, markerscale=0.1)
-            plt.grid(True)
-            plt.show()
-
-            plt.figure(figsize=(8, 4))
-            plt.plot(self.t, self.store_xd[:, 0], 'r-', label="North")
-            plt.plot(self.t, self.store_xd[:, 1], 'g-', label="East")
-            plt.plot(self.t, traj[:, 0], 'b-', label="North (actual)")
-            plt.plot(self.t, traj[:, 1], 'c-', label="East (actual)")
-            plt.xlabel("Time [s]")
-            plt.ylabel("Position [m]")
-            plt.title("Desired trajectory over time")
-            plt.legend(loc='upper right', fontsize='small', scatterpoints=1, markerscale=0.1)
-            plt.show()
-
-            plt.figure(figsize=(8, 4))
-            plt.plot(self.t, self.store_xd[:, 3], 'r-', label="yaw")
-            plt.plot(self.t, traj[:, 2], 'b-', label="yaw (actual)")
-            plt.xlabel("Time [s]")
-            plt.ylabel("Degrees [rad]")
-            plt.title("Desired yaw over time")
-            plt.legend(loc='upper right', fontsize='small', scatterpoints=1, markerscale=0.1)
-            plt.show()
-
-            plt.figure(figsize=(8, 4))
-            plt.plot(self.t, self.store_xd[:, 6], 'r-', label="North")
-            plt.plot(self.t, true_vel[:, 0], 'b-', label="North (actual)")
-            plt.plot(self.t, self.store_xd[:, 7], 'g-', label="East")
-            plt.plot(self.t, true_vel[:, 1], 'c-', label="East (actual)")
-            plt.xlabel("Time [s]")
-            plt.ylabel("Velocity [m/s]")
-            plt.title("Desired velocity over time")
-            plt.legend(loc='upper right', fontsize='small', scatterpoints=1, markerscale=0.1)
-            plt.show()
-
-            plt.figure(figsize=(8, 4))
-            plt.plot(self.t, self.store_xd[:, 8], 'r-', label="yaw")
-            plt.plot(self.t, true_vel[:, 2], 'b-', label="yaw (actual)")
-            plt.xlabel("Time [s]")
-            plt.ylabel("Velocity [rad/s]")
-            plt.title("Desired yaw velocity over time")
-            plt.legend(loc='upper right', fontsize='small', scatterpoints=1, markerscale=0.1)
-            plt.show()
-
