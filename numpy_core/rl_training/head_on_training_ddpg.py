@@ -10,6 +10,7 @@ from numpy_core.controllers.adaptive_seakeeping import (
 from ddpg.agent import Agent
 import os
 
+# Remember setting PYTHONPATH in .env file
 load_dotenv()
 home = os.getenv("PYTHONPATH")
 if not home:
@@ -101,7 +102,8 @@ def decode_action_to_refs(action: np.ndarray, state: dict):
     return psi_d, u_d
 
 
-# Training loop
+# Training loop, just set episodes to a low number for quick tests
+# and for checking the simulation behavior.
 def train(num_episodes=500, dt=0.08):
     # env just for agent init (no rendering)
     init_env = make_head_on_env(dt=dt, render_on=False)
