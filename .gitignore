@@ -156,5 +156,4 @@ mclsimpy/
 src/mclsimpy/
 **/mclsimpy/
 
-ddpg/
 checkpoints/
