@@ -1,4 +1,6 @@
 import numpy as np
+from dotenv import load_dotenv
+from pathlib import Path
 import matplotlib.pyplot as plt
 from numpy_core.gym.colregs_gym import ColregsGym
 from numpy_core.controllers.adaptive_seakeeping import (
@@ -7,6 +9,12 @@ from numpy_core.controllers.adaptive_seakeeping import (
 )
 from ddpg.agent import Agent
 import os
+
+load_dotenv()
+home = os.getenv("PYTHONPATH")
+if not home:
+    raise EnvironmentError("PYTHONPATH not set in environment variables.")
+    
 
 
 def plot_learning_curve(scores, filename):
@@ -113,12 +121,12 @@ def train(num_episodes=500, dt=0.08):
         tau=0.01,
         env=init_env,
         n_actions=2,
-        chkpt_dir="/Users/petterdalhaug/Documents/McHorcrux/checkpoints/ddpg",
+        chkpt_dir=str(Path(home) / "McHorcrux" / "checkpoints" / "ddpg",)
     )
 
     if len(
             os.listdir(
-                "/Users/petterdalhaug/Documents/McHorcrux/checkpoints/ddpg")
+                str(Path(home) / "McHorcrux" / "checkpoints" / "ddpg"))
     ) != 0:
         print("Loading existing models...")
         agent.load_models()
