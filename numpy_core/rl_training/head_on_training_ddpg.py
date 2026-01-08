@@ -104,7 +104,7 @@ def decode_action_to_refs(action: np.ndarray, state: dict):
 
 # Training loop, just set episodes to a low number for quick tests
 # and for checking the simulation behavior.
-def train(num_episodes=500, dt=0.08):
+def train(num_episodes=300, dt=0.08):
     # env just for agent init (no rendering)
     init_env = make_head_on_env(dt=dt, render_on=False)
     init_env.v_min, init_env.v_max = -1.0, 1.0

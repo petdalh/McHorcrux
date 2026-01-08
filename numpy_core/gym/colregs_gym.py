@@ -1,8 +1,8 @@
 from numpy_core.gym.mc_gym_csad_numpy import McGym
+from numpy_core.colregs_stl.vessel_state import VesselState, JointState
 import numpy as np
 import pygame
 import matplotlib.pyplot as plt
-
 
 class ColregsGym(McGym):
     def __init__(self, *args, **kwargs):
@@ -15,25 +15,71 @@ class ColregsGym(McGym):
         self.head_on_radius = 0.0      
         self.head_on_max_time = None   
         self.target_vessel_eta = None  
-        self.target_vessel_traj = []   
+        self.target_vessel_traj = [] 
+
+        # State histories for STL analysis
+        self.ego_state_history: list[VesselState] = []
+        self.adversary_state_history: list[VesselState] = []
+        self.joint_state_history = JointState([], [], np.array([0.0, 0.0], dtype=float))
 
         # For dense reward tracking
         self.prev_dist_to_goal = None
 
     def reset(self):
-        """Reset environment and initialize progress tracking."""
-        super().reset()
+        state = super().reset()
+
+        # Head-on init first (so get_state includes target)
         if self.head_on_mode and self.head_on_init is not None:
             self.target_vessel_eta = self.head_on_init.copy()
             self.target_vessel_traj = []
-        
-        # Initialize distance to goal for progress reward
+
         state = self.get_state()
+
+        # progress tracking
         n, e = state["eta"][:2]
         gn, ge = self.goal[:2]
         self.prev_dist_to_goal = np.hypot(gn - n, ge - e)
-        
+
+        # histories
+        self.ego_state_history.clear()
+        self.adversary_state_history.clear()
+
+        g_n, g_e = state["goal"][:2] if "goal" in state else self.goal[:2]
+        self.joint_state_history = JointState([], [], np.array([g_n, g_e], dtype=float))
+
+        self._log_joint_state(state)
         return state
+
+
+    def _log_joint_state(self, state: dict) -> None:
+        eta = state["eta"]
+        nu = state["nu"]
+
+        ego_vs = VesselState(
+            px=float(eta[0]),
+            py=float(eta[1]),
+            theta=float(eta[-1]),
+            v=float(nu[0]),
+            omega=float(nu[2]),
+        )
+        self.ego_state_history.append(ego_vs)
+        self.joint_state_history.ego.append(ego_vs)
+
+        tgt_eta = state.get("target_eta", None)
+        if tgt_eta is None:
+            adv_vs = VesselState(0.0, 0.0, 0.0, 0.0, 0.0)
+        else:
+            adv_vs = VesselState(
+                px=float(tgt_eta[0]),
+                py=float(tgt_eta[1]),
+                theta=float(tgt_eta[-1]),
+                v=float(state.get("target_speed", self.head_on_speed if self.head_on_mode else 0.0)),
+                omega=float(state.get("target_omega", 0.0)),
+            )
+
+        self.adversary_state_history.append(adv_vs)
+        self.joint_state_history.adversary.append(adv_vs)
+
 
     def compute_reward(self, action, prev_action):
         """
@@ -67,7 +113,7 @@ class ColregsGym(McGym):
             # In most marine models, positive 'r' (nu[2]) is a starboard turn.
             yaw_rate = nu[2]
             if dist_to_target < 15.0 and yaw_rate < -0.05:
-                reward -= 0.1  # Small penalty for "illegal" turn direction
+                reward -= 0.5  # Small penalty for "illegal" turn direction
 
         # 3. Comfort/Efficiency Penalties
         # Small penalty for high control effort (prevents jerky movements)
@@ -148,11 +194,15 @@ class ColregsGym(McGym):
         )
 
     def step(self, action):
-        """Advance both the own ship and the incoming vessel."""
         if self.head_on_mode and self.target_vessel_eta is not None:
             self._update_head_on_vessel()
 
-        return super().step(action)
+        new_state, done, info, reward = super().step(action)
+
+        # ensure target info is present (depends on your get_state implementation)
+        self._log_joint_state(new_state)
+
+        return new_state, done, info, reward
 
     # -------------------------
     # State / collision / drawing
