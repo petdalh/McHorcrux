@@ -7,7 +7,7 @@ class STLFormula(ABC):
         """Returns the robustness value rho at time step k[cite: 109]."""
         pass
 
-# --- Boolean Operators ---
+# Boolean Operators
 class Negation(STLFormula):
     def __init__(self, formula: STLFormula):
         self.formula = formula
@@ -26,7 +26,7 @@ class Disjunction(STLFormula):
     def evaluate_robust(self, joint_state, k):
         return np.max([f.evaluate_robust(joint_state, k) for f in self.formulas])
 
-# --- Temporal Operators ---
+# Temporal Operators
 class Always(STLFormula):
     def __init__(self, formula: STLFormula, interval: tuple[int, int]):
         self.formula = formula

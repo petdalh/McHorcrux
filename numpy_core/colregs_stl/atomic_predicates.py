@@ -75,7 +75,7 @@ class VelocityHalfplane(AtomicPredicate):
         v_A_vec = x_A.v * np.array([np.cos(x_A.theta), np.sin(x_A.theta)])
         v_rel = v_E_vec - v_A_vec
         
-        # Eq (16): Perpendicular distance in velocity space
+        # Perpendicular distance in velocity space
         # Rotation matrix R(epsilon + pi/2) 
         rot_angle = epsilon + (np.pi / 2)
         rot_mat = np.array([[np.cos(rot_angle), -np.sin(rot_angle)], 
