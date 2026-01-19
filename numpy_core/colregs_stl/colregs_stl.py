@@ -1,2 +1,0 @@
-class ColregsSTL:
-    pass
