@@ -69,10 +69,10 @@ import numpy as np
 import matplotlib.pyplot as plt
 import pygame
 
-from mclsimpy.simulator.csad import CSAD_DP_6DOF
-from mclsimpy.waves.wave_loads import WaveLoad
-from mclsimpy.waves.wave_spectra import JONSWAP
-from mclsimpy.utils import three2sixDOF, six2threeDOF, Rz, pipi
+from mcsimpy.simulator.csad import CSAD_DP_6DOF
+from mcsimpy.waves.wave_loads import WaveLoad
+from mcsimpy.waves.wave_spectra import JONSWAP
+from mcsimpy.utils import three2sixDOF, six2threeDOF, Rz, pipi
 
 from numpy_core.ref_gen.reference_filter import ThrdOrderRefFilter
 
@@ -264,6 +264,15 @@ class McGym:
         if self.render_on and self.screen is not None:
             self.screen.fill((20, 20, 20))
 
+        return self.get_obs()
+
+    def get_obs(self) -> np.ndarray:
+        """Returns a flat numpy observation array. Subclasses should override."""
+        state = self.get_state()
+        eta = state["eta"]
+        nu = state["nu"]
+        return np.concatenate([eta[:2], [eta[-1]], nu])  # [n, e, psi, u, v, r] = 6D
+
     def set_wave_conditions(self, hs, tp, wave_dir_deg, N_w=100, gamma=3.3):
         """Builds a wave load from the specified wave parameters."""
         self.wave_conditions = (hs, tp, wave_dir_deg)
@@ -414,7 +423,7 @@ class McGym:
         if self.render_on:
             self.render()
 
-        return self.get_state(), done, info, reward
+        return self.get_obs(), reward, done, info
 
     def _check_termination(self, boat_pos):
         """
@@ -701,18 +710,6 @@ class McGym:
 
         # Color the hull polygon
         pygame.draw.polygon(self.screen, (0, 100, 255), pixel_pts)
-
-    def set_reward_function(self, reward_func):
-        """
-        Set a custom reward function for the environment.
-
-        Parameters
-        ----------
-        reward_func : callable
-            A function that takes the current action and previous action as input
-            and returns a reward value.
-        """
-        self.compute_reward = reward_func
 
     def compute_reward(self, action, prev_action):
         """

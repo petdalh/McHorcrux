@@ -2,14 +2,13 @@ import numpy as np
 from dotenv import load_dotenv
 from pathlib import Path
 import matplotlib.pyplot as plt
-from numpy_core.gym.colregs_gym import ColregsGym
+from numpy_core.rl_training.colregs_gym import ColregsGym
 from numpy_core.controllers.adaptive_seakeeping import (
     MRACShipController,
     heading_to_goal,
 )
 from ddpg.agent import Agent
 import os
-from numpy_core.colregs_stl.colregs_rule import HeadOnRule, CrossingRule
 
 # Remember setting PYTHONPATH in .env file
 load_dotenv()
@@ -17,36 +16,9 @@ home = os.getenv("PYTHONPATH")
 if not home:
     raise EnvironmentError("PYTHONPATH not set in environment variables.")
 
+from numpy_core.rl_training.reachable_sets import preload_reachable_sets, select_reachable_set
+
 dt=0.08
-def to_steps(seconds):
-    return int(seconds / dt)
-
-def evaluate_colregs_compliance(joint_state_history, dt=0.08):
-
-    params = {
-        'beta_low': np.deg2rad(-2),
-        'beta_high': np.deg2rad(2),
-        'gamma_low': np.deg2rad(175),
-        'gamma_high': np.deg2rad(185),
-        
-        # Scaling factors
-        'v_max': 2.0,           
-        'omega_max': 0.5,
-        'a_max': 0.5,
-        'alpha_max': np.deg2rad(45),
-        'd_zone': 2.0,          
-        
-
-        't_h': to_steps(40.0),  # Velocity look-ahead
-        't_p': to_steps(15.0),  # Encounter must persist for 10s
-        't_m': to_steps(20.0),  # Maneuver window is 10s (consequent looks up to 2*t_m)
-        
-        'delta': np.deg2rad(5),
-        'epsilon': 0.1,         
-    }
-
-    rule = HeadOnRule("HeadOn", params)
-    return rule.evaluate(joint_state_history, k=0)
 
 def plot_learning_curve(scores, filename):
     """
@@ -146,6 +118,8 @@ def train(num_episodes=300, dt=0.08):
 
     score_history = []
 
+    ellipsoids_Ab_dicts = preload_reachable_sets("voyager")
+
     agent = Agent(
         alpha=0.000025,
         beta=0.00025,
@@ -181,6 +155,8 @@ def train(num_episodes=300, dt=0.08):
         done = False
         score = 0.0
 
+        ellipsoids_Ab_dict = select_reachable_set(ellipsoids_Ab_dicts, env.head_on_speed)
+
         while not done:
             action_rl = agent.choose_action(obs)
             psi_d, u_d = decode_action_to_refs(action_rl, state)
@@ -206,26 +182,6 @@ def train(num_episodes=300, dt=0.08):
             state = new_state
             score += reward
             score_history.append(score)
-
-        history = env.joint_state_history
-        
-        required_steps = to_steps(10.0) + 2 * to_steps(10.0) 
-
-        if len(history.ego) > required_steps:
-            try:
-                rho_in, rho_out = evaluate_colregs_compliance(history, dt=0.08)
-                
-                # Interpretation based on IA-STL semantics
-                is_vacuous = rho_in > 0
-                is_violated = not is_vacuous and rho_out < 0
-                
-                status = "VACUOUS" if is_vacuous else ("VIOLATED" if is_violated else "COMPLIANT")
-                print(f"--- COLREGs Eval: {status} (rho_in: {rho_in:.4f}, rho_out: {rho_out:.4f}) ---")
-            except Exception as e:
-                print(f"Error during STL evaluation: {e}")
-        else:
-            print(f"Episode too short for COLREGs evaluation ({len(history.ego)} < {required_steps} steps).")
-                        
 
         score_history.append(score)
 
