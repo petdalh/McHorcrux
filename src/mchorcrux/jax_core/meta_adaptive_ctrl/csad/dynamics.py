@@ -1,8 +1,9 @@
 
 import jax
 import jax.numpy as jnp
+from importlib.resources import files as _pkg_files
 from mchorcrux.jax_core.utils import six2threeDOF, Rz, J, three2sixDOF
-from mchorcrux.jax_core.simulator.vessels.csad_jax import load_csad_parameters
+from mchorcrux.jax_core.simulator.vessels.csad_jax import load_csad_parameters, _DEFAULT_CSAD_JSON
 from mchorcrux.jax_core.simulator.waves.wave_spectra_jax import jonswap_spectrum
 # Updated import: now use the new jit-compatible module
 from mchorcrux.jax_core.simulator.waves.wave_load_jax_jit import init_wave_load, WaveLoad, wave_load
@@ -10,7 +11,7 @@ from mchorcrux.jax_core.simulator.waves.wave_load_jax_jit import init_wave_load,
 # --------------------------------------------------------------------------
 # Load vessel parameters and set up initial state (functional style)
 # --------------------------------------------------------------------------
-config_file = "data/vessel_data/csad/csad.json"
+config_file = _DEFAULT_CSAD_JSON
 params_jit = load_csad_parameters(config_file)
 M = params_jit["M"]
 D = params_jit["D"]
@@ -53,7 +54,7 @@ def zero_prior(q, dq):
 #     return ddq
 
 def disturbance(wave_parm, key, N=15,
-                config_file="data/vessel_data/csad/csad.json"):
+                config_file=_DEFAULT_CSAD_JSON):
     hs, tp, wave_dir = wave_parm
     print(hs, tp, wave_dir)
     wp = 2 * jnp.pi / tp       # Peak frequency

@@ -2,7 +2,7 @@
 import jax
 import jax.numpy as jnp
 from mchorcrux.jax_core.utils import six2threeDOF, Rz, three2sixDOF, J
-from mchorcrux.jax_core.simulator.vessels.rvg_jax import load_rvg_parameters
+from mchorcrux.jax_core.simulator.vessels.rvg_jax import load_rvg_parameters, _DEFAULT_RVG_JSON
 from mchorcrux.jax_core.simulator.waves.wave_spectra_jax import jonswap_spectrum
 # Updated import: now use the new jit-compatible module
 from mchorcrux.jax_core.simulator.waves.wave_load_jax_jit import init_wave_load, WaveLoad, wave_load
@@ -10,7 +10,7 @@ from mchorcrux.jax_core.simulator.waves.wave_load_jax_jit import init_wave_load,
 # --------------------------------------------------------------------------
 # Load vessel parameters and set up initial state (functional style)
 # --------------------------------------------------------------------------
-config_file = "data/vessel_data/rvg/rvg.json"
+config_file = _DEFAULT_RVG_JSON
 params_jit = load_rvg_parameters(config_file)
 M = params_jit["M"]
 D = params_jit["D"]
@@ -54,7 +54,7 @@ def plant_6(q, dq, u, f_ext, prior=prior_6dof):
 
 
 def disturbance(wave_parm, key, N=15,
-                config_file="data/vessel_data/rvg/rvg.json"):
+                config_file=_DEFAULT_RVG_JSON):
     hs, tp, wave_dir = wave_parm
     print(hs, tp, wave_dir)
     wp = 2 * jnp.pi / tp       # Peak frequency

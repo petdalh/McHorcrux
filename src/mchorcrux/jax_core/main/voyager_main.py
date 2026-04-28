@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 # Import functional vessel routines
-from mchorcrux.jax_core.simulator.vessels.voyager_jax import load_voyager_parameters, voyager_x_dot
+from mchorcrux.jax_core.simulator.vessels.voyager_jax import load_voyager_parameters, voyager_x_dot, _DEFAULT_VOYAGER_JSON
 # Import the RK4 integrator from your utils
 from mchorcrux.jax_core.utils import rk4_step, pipi
 # Import the JONSWAP spectrum from your spectra module
@@ -28,7 +28,7 @@ n_steps = t_array.shape[0]
 # --------------------------------------------------------------------------
 # Load vessel parameters and set up initial state (functional style)
 # --------------------------------------------------------------------------
-config_file = "data/vessel_data/voyager/voyager.json"
+config_file = _DEFAULT_VOYAGER_JSON
 params_jit = load_voyager_parameters(config_file)
 
 print(f"Init boat took {time.time() - start:.2f} seconds")

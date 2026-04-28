@@ -1,8 +1,10 @@
 import torch
-import os
 import json
-from  torch_core.simulator.vessels.vessel_torch import Vessel
+from importlib.resources import files as _pkg_files
+from mchorcrux.torch_core.simulator.vessels.vessel_torch import Vessel
 from mchorcrux.torch_core.utils import Rz_torch, J_torch, Smat_torch
+
+_DEFAULT_RVG_JSON = str(_pkg_files("mchorcrux").joinpath("data/vessel_data/rvg/rvg.json"))
 
 class RVG_6DOF(Vessel):
     """
@@ -15,10 +17,10 @@ class RVG_6DOF(Vessel):
     def __init__(self,
                  dt: float,
                  method: str = "RK4",
-                 config_file: str ="data/vessel_data/rvg/rvg.json",
+                 config_file: str = _DEFAULT_RVG_JSON,
                  dof: int = 6):
 
-        cfg_path = os.path.expanduser(config_file)
+        cfg_path = config_file
 
         super().__init__(dt=dt, method=method, config_file=cfg_path, dof=dof)
 
@@ -99,7 +101,7 @@ class RVG_6DOF(Vessel):
         freq : scalar or length-6 iterable/tensor (one per DOF).
         """
 
-        cfg_path = os.path.expanduser(config_file) if config_file else self._config_file
+        cfg_path = config_file if config_file else self._config_file
         with open(cfg_path, "r") as f:
             param = json.load(f)
 

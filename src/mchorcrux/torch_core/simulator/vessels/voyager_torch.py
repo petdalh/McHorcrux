@@ -11,10 +11,13 @@ Updated: 2025-05-05  (55-point frequency grid, robust index selection)
 import json
 import math
 from typing import Union
+from importlib.resources import files as _pkg_files
 
 import torch
 from mchorcrux.torch_core.simulator.vessels.vessel_torch import Vessel
 from mchorcrux.torch_core.utils import Rz_torch, J_torch
+
+_DEFAULT_VOYAGER_JSON = str(_pkg_files("mchorcrux").joinpath("data/vessel_data/voyager/voyager.json"))
 
 
 class VOYAGER(Vessel):
@@ -33,7 +36,7 @@ class VOYAGER(Vessel):
     def __init__(self,
                  dt: float,
                  method: str = "RK4",
-                 config_file: str = "data/vessel_data/voyager/voyager.json",
+                 config_file: str = _DEFAULT_VOYAGER_JSON,
                  dof: int = 6):
 
         # base-class setup (integrator, buffers, …)

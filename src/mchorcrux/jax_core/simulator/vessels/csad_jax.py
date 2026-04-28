@@ -11,9 +11,12 @@ Date:   2025-03-17
 import json
 import jax
 import jax.numpy as jnp
+from importlib.resources import files as _pkg_files
 from mchorcrux.jax_core.utils import Rz, J  # Ensure these are pure functions as well
 
-def load_csad_parameters(config_file="data/vessel_data/csad/csad.json"):
+_DEFAULT_CSAD_JSON = str(_pkg_files("mchorcrux").joinpath("data/vessel_data/csad/csad.json"))
+
+def load_csad_parameters(config_file=_DEFAULT_CSAD_JSON):
     """
     Load the vessel parameters from a JSON file and construct the system matrices.
     
@@ -91,7 +94,7 @@ def csad_x_dot(x, Uc, betac, tau, params):
     
     return jnp.concatenate([eta_dot, nu_dot])
 
-def set_hydrod_parameters(freq, params, config_file="data/vessel_data/csad/csad.json"):
+def set_hydrod_parameters(freq, params, config_file=_DEFAULT_CSAD_JSON):
     """
     Update hydrodynamic parameters for a given frequency (or per-DOF frequencies).
     

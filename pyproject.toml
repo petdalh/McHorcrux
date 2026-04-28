@@ -5,8 +5,23 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "mchorcrux"
 version = "0.1.0"
+description = "Marine control and simulation library for dynamic positioning and seakeeping"
+requires-python = ">=3.10"
 dependencies = [
+    "numpy",
 ]
+
+[project.optional-dependencies]
+jax = ["jax>=0.4"]
+torch = ["torch>=2.0"]
+all = ["jax>=0.4", "torch>=2.0", "matplotlib", "pandas"]
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.setuptools.package-data]
+mchorcrux = [
+    "data/vessel_data/**/*.json",
+    "data/vessel_data/**/*.pdf",
+    "data/vessel_data/**/*.m",
+]

@@ -3,11 +3,11 @@ if __name__ == "__main__":
     import jax
     import jax.numpy as jnp
     # Updated import: now use the new jit-compatible module
-    from jax_core.simulator.waves.wave_load_jax_jit import wave_load, WaveLoad
+    from mchorcrux.jax_core.simulator.waves.wave_load_jax_jit import wave_load, WaveLoad
     import pickle
     from jax.experimental.ode import odeint
-    from jax_core.utils import spline, random_ragged_spline
-    from jax_core.meta_adaptive_ctrl.csad.dynamics import prior_3dof, plant, disturbance  # using updated disturbance & prior functions
+    from mchorcrux.jax_core.utils import spline, random_ragged_spline
+    from mchorcrux.jax_core.meta_adaptive_ctrl.csad.dynamics import prior_3dof, plant, disturbance  # using updated disturbance & prior functions
 
     # Seed random numbers
     seed = 0

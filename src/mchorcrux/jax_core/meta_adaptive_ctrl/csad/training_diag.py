@@ -35,7 +35,7 @@ args = parser.parse_args()
 if args.use_x64:
     os.environ['JAX_ENABLE_X64'] = 'True'
 
-# from jax_core.thruster_allocation.psudo import (
+# from mchorcrux.jax_core.thruster_allocation.psudo import (
 #     create_thruster_config, allocate_with_config, saturate_rate, map_to_3dof,
 #     get_default_config, DEFAULT_THRUST_MAX, DEFAULT_THRUST_MIN, DEFAULT_DT,
 #     DEFAULT_N_DOT_MAX, DEFAULT_ALPHA_DOT_MAX

@@ -279,7 +279,9 @@ class McGym(gym.Env):
             north0, east0, heading_rad = self.start_position
             eta_start = three2sixDOF(np.array([north0, east0, heading_rad]))
             self.vessel.set_eta(eta_start)
-            self.vessel.set_nu(np.zeros(6))
+            nu_init = np.zeros(6)
+            nu_init[0] = 0.3 * 0.95  # Set initial surge speed
+            self.vessel.set_nu(nu_init)
 
         if self.wave_conditions is not None:
             self.set_wave_conditions(*self.wave_conditions)
@@ -305,6 +307,11 @@ class McGym(gym.Env):
 
     def set_wave_conditions(self, hs, tp, wave_dir_deg, N_w=100, gamma=3.3):
         """Builds a wave load from the specified wave parameters."""
+        # Return early if parameters haven't changed
+        if (hs, tp, wave_dir_deg) == getattr(self, '_cached_wave_params', None):
+            print("Wave conditions unchanged, using cached wave load.")
+            return
+
         self.wave_conditions = (hs, tp, wave_dir_deg)
         wp = 2 * np.pi / tp
         wmin, wmax = wp / 2, 3.0 * wp
@@ -328,7 +335,8 @@ class McGym(gym.Env):
             qtf_method="geo-mean",
             deep_water=True,
         )
-
+        self._cached_wave_params = (hs, tp, wave_dir_deg)
+        
     def get_four_corner_nd(self, step_count):
         """
         Retrieves the desired reference states during a four-corner test.

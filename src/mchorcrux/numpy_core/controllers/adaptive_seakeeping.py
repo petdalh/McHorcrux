@@ -87,23 +87,35 @@ class SurgePID:
     A simple PID (or PD) controller for surge (forward speed).
     For demonstration, we just do P-control: F_surge = Kp * (u_d - u).
     """
-    def __init__(self, kp=100.0, dt=0.1, desired_speed=1.0):
+    def __init__(self, kp=100.0, ki=5.0, dt=0.1, desired_speed=1.0, i_max=500.0):
         """
         Args:
             kp           : proportional gain
+            ki           : integral gain
             dt           : time step
             desired_speed: target forward speed in m/s
+            i_max        : maximum integral error
         """
         self.kp = kp
+        self.ki = ki
         self.dt = dt
         self.desired_speed = desired_speed
+        self.i_max = i_max
+        self.integral_error = 0
 
     def compute_force(self, u):
         """
         Return the surge force needed for (u_d - u).
         """
         error = self.desired_speed - u
-        force = self.kp * error
+        self.integral_error += error * self.dt
+
+        # Anti-windup clamping
+        self.integral_error = np.clip(
+            self.integral_error, -self.i_max / max(self.ki, 1e-9), self.i_max / max(self.ki, 1e-9)
+        )
+
+        force = self.kp * error + self.ki * self.integral_error
         return force
 
 class MRACShipController:
@@ -114,9 +126,13 @@ class MRACShipController:
     def __init__(self, dt=0.1):
         self.dt = dt
         # Create the heading MRAC
-        self.heading_mrac = MRACHeadingController(Tm=5.0, Km=1.0, gamma=0.5, dt=dt, rudder_gain=50.0)
+        self.heading_mrac = MRACHeadingController(Tm=1.0, Km=1.0, gamma=0.5, dt=dt, rudder_gain=50.0)
         # Create surge PID
-        self.surge_pid = SurgePID(kp=10.0, dt=dt, desired_speed=1.0)
+        self.surge_pid = SurgePID(kp=20.0, ki=4.0, dt=dt, desired_speed=1.0, i_max=500.0)
+
+        # Low pass filtering parameters
+        self.filter_alpha = 0.2
+        self.filtered_surge = 0.0
 
     def compute_action(self, state, goal_2d):
         """
@@ -148,7 +164,6 @@ class MRACShipController:
 
         # 3) Use surge PID for forward speed
         surge_force = self.surge_pid.compute_force(u)
-
 
         # 4) Construct 3-DOF action = [Fx, Fy, Mz]
         action = np.array([surge_force, 0.0, yaw_torque])
@@ -183,8 +198,8 @@ class MRACShipController:
         yaw_torque = self.heading_mrac.get_yaw_torque(delta)
 
         # 2) Use surge PID for forward speed
-        surge_force = self.surge_pid.compute_force(u)
-
+        surge_force = self.filter_alpha * self.surge_pid.compute_force(u) + (1 - self.filter_alpha) * self.filtered_surge
+        self.filtered_surge = surge_force
 
         # 3) Construct 3-DOF action = [Fx, Fy, Mz]
         action = np.array([surge_force, 0.0, yaw_torque])

@@ -11,11 +11,13 @@ Date:   2025-02-17
 """
 
 import torch
-import os
 import json
 from typing import Union
-from  torch_core.simulator.vessels.vessel_torch import Vessel
+from importlib.resources import files as _pkg_files
+from mchorcrux.torch_core.simulator.vessels.vessel_torch import Vessel
 from mchorcrux.torch_core.utils import Rz_torch, J_torch
+
+_DEFAULT_CSAD_JSON = str(_pkg_files("mchorcrux").joinpath("data/vessel_data/csad/csad.json"))
 
 class CSAD_6DOF(Vessel):
     """
@@ -41,7 +43,7 @@ class CSAD_6DOF(Vessel):
     def __init__(self,
                  dt: float,
                  method: str = "RK4",
-                 config_file: str ="data/vessel_data/csad/csad.json",
+                 config_file: str = _DEFAULT_CSAD_JSON,
                  dof: int = 6):
         """
         Parameters
@@ -52,9 +54,7 @@ class CSAD_6DOF(Vessel):
         dof         : degrees-of-freedom (fixed at 6 for a full rigid-body)
         """
 
-        # 1) Resolve the JSON file path exactly the same way as the original
-        # ------------------------------------------------------------------
-        cfg_path = config_file # Use the provided config_file path directly
+        cfg_path = config_file
 
         # 2) Call the generic differentiable-vessel constructor (handles the
         #    integration loop, buffers, etc.)

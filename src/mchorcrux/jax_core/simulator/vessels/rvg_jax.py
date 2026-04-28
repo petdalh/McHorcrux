@@ -10,9 +10,12 @@ Date:   2025-03-17
 
 import json
 import jax.numpy as jnp
+from importlib.resources import files as _pkg_files
 from mchorcrux.jax_core.utils import Rz, J, Smat  # Ensure these are pure functions as well
 
-def load_rvg_parameters(config_file="data/vessel_data/rvg/rvg.json"):
+_DEFAULT_RVG_JSON = str(_pkg_files("mchorcrux").joinpath("data/vessel_data/rvg/rvg.json"))
+
+def load_rvg_parameters(config_file=_DEFAULT_RVG_JSON):
     """
     Load the vessel parameters from a JSON file and construct the system matrices.
     
@@ -92,7 +95,7 @@ def rvg_x_dot(x, Uc, betac, tau, params):
     
     return jnp.concatenate([eta_dot, nu_dot])
 
-def set_hydrod_parameters(freq, params, config_file="data/vessel_data/rvg/rvg.json"):
+def set_hydrod_parameters(freq, params, config_file=_DEFAULT_RVG_JSON):
     """
     Update hydrodynamic parameters for a given frequency (or per-DOF frequencies).
     

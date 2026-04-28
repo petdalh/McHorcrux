@@ -11,13 +11,15 @@ Updated : 2025-05-05  (55-point table, frequency-dependent Bv)
 import json
 import math
 import jax.numpy as jnp
-from mchorcrux.jax_core.utils import Rz, J  
+from importlib.resources import files as _pkg_files
+from mchorcrux.jax_core.utils import Rz, J
 
+_DEFAULT_VOYAGER_JSON = str(_pkg_files("mchorcrux").joinpath("data/vessel_data/voyager/voyager.json"))
 
 # ───────────────────────────────────────────────────────────────
 # 1.  parameter loader
 # ───────────────────────────────────────────────────────────────
-def load_voyager_parameters(config_file="data/vessel_data/voyager/voyager.json"):
+def load_voyager_parameters(config_file=_DEFAULT_VOYAGER_JSON):
     """
     Read *voyager.json* and build the hydrodynamic matrices.
 
@@ -93,7 +95,7 @@ def voyager_x_dot(x, Uc, betac, tau, p):
 # ───────────────────────────────────────────────────────────────
 def set_hydrod_parameters(freq,
                           params,
-                          config_file="data/vessel_data/voyager/voyager.json"):
+                          config_file=_DEFAULT_VOYAGER_JSON):
     """
     Return a **new** params dict where `Ma`, `Dp`, `Dv`, `M`, `Minv`, `D`
     are taken at `freq` (scalar) *or* at one frequency per DOF (shape 6,).
