@@ -155,3 +155,10 @@ __pycache__/
 mclsimpy/
 src/mclsimpy/
 **/mclsimpy/
+
+mcsimpy/
+src/mcsimpy/
+**/mcsimpy/
+
+checkpoints/
+ddpg/

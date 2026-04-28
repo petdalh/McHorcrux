@@ -10,22 +10,21 @@ import pandas as pd
 import jax, jax.numpy as jnp
 import torch
 
-from jax_core.simulator.vessels.csad_jax import load_csad_parameters, csad_x_dot
-from jax_core.utils import rk4_step
-from jax_core.simulator.waves.wave_spectra_jax import jonswap_spectrum
-from jax_core.simulator.waves.wave_load_jax_jit import init_wave_load, wave_load
+from mchorcrux.jax_core.simulator.vessels.csad_jax import load_csad_parameters, csad_x_dot, _DEFAULT_CSAD_JSON
+from mchorcrux.jax_core.utils import rk4_step
+from mchorcrux.jax_core.simulator.waves.wave_spectra_jax import jonswap_spectrum
+from mchorcrux.jax_core.simulator.waves.wave_load_jax_jit import init_wave_load, wave_load
 
-from torch_core.simulator.vessels.csad_torch import CSAD_6DOF as CSAD_DP_6DOF_Torch
-from torch_core.simulator.waves.wave_load_torch import WaveLoad as WaveLoadTorch
-from torch_core.simulator.waves.wave_spectra_torch import JONSWAP as JONSWAPTorch
+from mchorcrux.torch_core.simulator.vessels.csad_torch import CSAD_6DOF as CSAD_DP_6DOF_Torch
+from mchorcrux.torch_core.simulator.waves.wave_load_torch import WaveLoad as WaveLoadTorch
+from mchorcrux.torch_core.simulator.waves.wave_spectra_torch import JONSWAP as JONSWAPTorch
 
 from mcsimpy.simulator import CSAD_DP_6DOF
 from mcsimpy.waves import JONSWAP, WaveLoad
 
 from functools import lru_cache
 
-# path to your JSON config
-CONFIG_FILE = Path('data/vessel_data/csad/csad.json').resolve()
+CONFIG_FILE = Path(_DEFAULT_CSAD_JSON)
 
 # --- argument parsing ---
 parser = argparse.ArgumentParser(

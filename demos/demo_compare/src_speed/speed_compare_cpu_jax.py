@@ -30,14 +30,14 @@ import numpy as np
 import pandas as pd
 
 # ---- project imports ------------------------------------------------------
-from jax_core.simulator.vessels.csad_jax import load_csad_parameters, csad_x_dot
-from jax_core.utils import rk4_step
-from jax_core.simulator.waves.wave_spectra_jax import jonswap_spectrum
-from jax_core.simulator.waves.wave_load_jax_jit import init_wave_load, wave_load
+from mchorcrux.jax_core.simulator.vessels.csad_jax import load_csad_parameters, csad_x_dot, _DEFAULT_CSAD_JSON
+from mchorcrux.jax_core.utils import rk4_step
+from mchorcrux.jax_core.simulator.waves.wave_spectra_jax import jonswap_spectrum
+from mchorcrux.jax_core.simulator.waves.wave_load_jax_jit import init_wave_load, wave_load
 # ---- force JAX → CPU *before* importing jax -------------------------------
 jax.config.update("jax_platform_name", "cpu")
 # ---------------------------------------------------------------------------
-CONFIG_FILE = Path("data/vessel_data/csad/csad.json").resolve()
+CONFIG_FILE = Path(_DEFAULT_CSAD_JSON)
 
 # ---- argument parsing -----------------------------------------------------
 parser = argparse.ArgumentParser(

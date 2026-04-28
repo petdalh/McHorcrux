@@ -32,11 +32,11 @@ import jax.numpy as jnp
 from jax.experimental.ode import odeint
 
 # Project‑local helpers – paths identical to *test_all.py*
-from jax_core.meta_adaptive_ctrl.rvg.dynamics import (
+from mchorcrux.jax_core.meta_adaptive_ctrl.rvg.dynamics import (
     disturbance, plant_6 as plant, prior_3dof_nom as prior,
 )
-from jax_core.simulator.waves.wave_load_jax_jit import wave_load
-from jax_core.utils import (
+from mchorcrux.jax_core.simulator.waves.wave_load_jax_jit import wave_load
+from mchorcrux.jax_core.utils import (
     random_ragged_spline,
     spline,
 )
