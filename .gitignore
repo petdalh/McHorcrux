@@ -160,5 +160,4 @@ mcsimpy/
 src/mcsimpy/
 **/mcsimpy/
 
-checkpoints/
-ddpg/
+.env
