@@ -82,6 +82,9 @@ from mcsimpy.waves.wave_spectra import JONSWAP
 from mcsimpy.utils import three2sixDOF, six2threeDOF, Rz, pipi
 
 from mchorcrux.numpy_core.ref_gen.reference_filter import ThrdOrderRefFilter
+from mchorcrux.numpy_core.controllers.backstepping_controller import BacksteppingHeadingSurgeController
+from mchorcrux.numpy_core.controllers.backstepping_los_controller import BacksteppingLOSController
+from mchorcrux.numpy_core.controllers.adaptive_seakeeping import MRACShipController
 
 
 class McGym(gym.Env):
@@ -118,6 +121,7 @@ class McGym(gym.Env):
         render_mode=None,
         final_plot=True,
         vessel=CSAD_DP_6DOF,
+        controller=None
     ):
         super().__init__()
 
@@ -136,6 +140,13 @@ class McGym(gym.Env):
 
         # Create the vessel simulator
         self.vessel = vessel(dt, method="RK4")
+        if not controller:
+            self._controller = BacksteppingLOSController(
+                 dt=dt, M=self.vessel._M, D=self.vessel._D
+            )
+            #self._controller = MRACShipController(dt=self.dt)
+        else:
+            self._controller = controller
         self.waveload = None
         self.curr_sim_time = 0.0
 
