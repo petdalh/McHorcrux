@@ -162,7 +162,7 @@ class BacksteppingLOSController:
         # --------------------------------------------------------------
         # Reference derivatives
         #
-        # Use the caller-provided values when available (preferred).
+        # Use caller-provided values when available (preferred).
         # Fall back to finite differencing only for any that are None.
         # --------------------------------------------------------------
         if psi_d_dot is None or psi_d_ddot is None or u_d_dot is None:

@@ -44,6 +44,11 @@ class MRACHeadingController:
         # Adaptive parameter
         self.theta_hat = 0.0
 
+    def reset(self):
+        self.psi_m = 0.0
+        self.psi_m_dot = 0.0
+        self.theta_hat = 0.0
+
     def update(self, psi, psi_d):
         """
         Given current heading psi and desired heading psi_d, compute
@@ -103,6 +108,9 @@ class SurgePID:
         self.i_max = i_max
         self.integral_error = 0
 
+    def reset(self):
+        self.integral_error = 0.0
+
     def compute_force(self, u):
         """
         Return the surge force needed for (u_d - u).
@@ -132,6 +140,11 @@ class MRACShipController:
 
         # Low pass filtering parameters
         self.filter_alpha = 0.2
+        self.filtered_surge = 0.0
+
+    def reset(self):
+        self.heading_mrac.reset()
+        self.surge_pid.reset()
         self.filtered_surge = 0.0
 
     def compute_action(self, state, goal_2d):
@@ -204,3 +217,4 @@ class MRACShipController:
         # 3) Construct 3-DOF action = [Fx, Fy, Mz]
         action = np.array([surge_force, 0.0, yaw_torque])
         return action
+    

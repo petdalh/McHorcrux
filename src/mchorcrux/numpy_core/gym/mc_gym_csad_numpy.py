@@ -82,9 +82,9 @@ from mcsimpy.waves.wave_spectra import JONSWAP
 from mcsimpy.utils import three2sixDOF, six2threeDOF, Rz, pipi
 
 from mchorcrux.numpy_core.ref_gen.reference_filter import ThrdOrderRefFilter
-from mchorcrux.numpy_core.controllers.backstepping_controller import BacksteppingHeadingSurgeController
 from mchorcrux.numpy_core.controllers.backstepping_los_controller import BacksteppingLOSController
 from mchorcrux.numpy_core.controllers.adaptive_seakeeping import MRACShipController
+from mchorcrux.numpy_core.observers.nonlinobs import NonlinObs3dof
 
 
 class McGym(gym.Env):
@@ -155,6 +155,13 @@ class McGym(gym.Env):
         self.final_plot = final_plot
         self.trajectory = []
         self.true_vel = []
+
+        # Observer (wave-frequency / LF motion separation)
+        # Sub-stepped for numerical stability: Euler on the wave oscillator requires
+        # dt_obs * wo < 2. At model-scale Tp~1.5s (wo~4.2 rad/s) and dt=0.5s the
+        # condition is violated, so the observer runs at dt/10 per control step.
+        self._observer = None
+        self._obs_substeps = 10
 
         # Task-related
         self.start_position = None
@@ -291,11 +298,15 @@ class McGym(gym.Env):
             eta_start = three2sixDOF(np.array([north0, east0, heading_rad]))
             self.vessel.set_eta(eta_start)
             nu_init = np.zeros(6)
-            nu_init[0] = 0.3 * 0.95  # Set initial surge speed
+            nu_init[0] = 0.3 * 0.8  # Set initial surge speed
             self.vessel.set_nu(nu_init)
 
         if self.wave_conditions is not None:
             self.set_wave_conditions(*self.wave_conditions)
+
+        if self._observer is not None:
+            self._observer._x_hat[:] = 0.0
+            self._observer._y_hat[:] = 0.0
 
         if self.final_plot:
             self.trajectory = []
@@ -347,6 +358,18 @@ class McGym(gym.Env):
             deep_water=True,
         )
         self._cached_wave_params = (hs, tp, wave_dir_deg)
+
+        wo = 2 * np.pi / tp
+        dt_obs = self.dt / self._obs_substeps
+        self._observer = NonlinObs3dof(
+            dt=dt_obs,
+            wc=0.5,
+            wo=wo,
+            lambd=0.1,
+            T=1000.0,
+            M=six2threeDOF(self.vessel._M),
+            D=six2threeDOF(self.vessel._D),
+        )
         
     def get_four_corner_nd(self, step_count):
         """
@@ -447,6 +470,12 @@ class McGym(gym.Env):
 
         # Integrate vessel with control + wave
         self.vessel.integrate(0, 0, tau_6dof + tau_wave)
+
+        if self._observer is not None:
+            y = six2threeDOF(self.vessel.get_eta())
+            tau_3dof = np.asarray(action, dtype=float)
+            for _ in range(self._obs_substeps):
+                self._observer.update(y, tau_3dof)
 
         boat_pos = six2threeDOF(self.vessel.get_eta())
         terminated, truncated, info = self._check_termination(boat_pos)
@@ -562,6 +591,16 @@ class McGym(gym.Env):
         return False, True, {
             "reason": "No goal or four_corner_test initiated breaking the environment"
         }
+
+    def get_observed_state(self):
+        """Returns state with nu replaced by the observer's LF velocity estimate.
+
+        Falls back to raw get_state() if no observer is active.
+        """
+        raw = self.get_state()
+        if self._observer is None:
+            return raw
+        return {**raw, "nu": self._observer.nu}
 
     def get_state(self):
         """
