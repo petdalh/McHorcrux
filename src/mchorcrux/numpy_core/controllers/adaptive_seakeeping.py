@@ -49,6 +49,11 @@ class MRACHeadingController:
         self.psi_m_dot = 0.0
         self.theta_hat = 0.0
 
+    def warm_start(self, psi_d):
+        self.psi_m = self.Km * float(psi_d)
+        self.psi_m_dot = 0.0
+        self.theta_hat = 0.0
+
     def update(self, psi, psi_d):
         """
         Given current heading psi and desired heading psi_d, compute
@@ -111,6 +116,17 @@ class SurgePID:
     def reset(self):
         self.integral_error = 0.0
 
+    def warm_start(self, desired_speed, feedforward_force=0.0):
+        self.desired_speed = float(desired_speed)
+        if abs(self.ki) <= 1e-9:
+            self.integral_error = 0.0
+            return
+
+        integral_limit = self.i_max / abs(self.ki)
+        self.integral_error = float(
+            np.clip(float(feedforward_force) / self.ki, -integral_limit, integral_limit)
+        )
+
     def compute_force(self, u):
         """
         Return the surge force needed for (u_d - u).
@@ -146,6 +162,11 @@ class MRACShipController:
         self.heading_mrac.reset()
         self.surge_pid.reset()
         self.filtered_surge = 0.0
+
+    def warm_start(self, psi_d, u_d, surge_feedforward=0.0):
+        self.heading_mrac.warm_start(psi_d)
+        self.surge_pid.warm_start(u_d, feedforward_force=surge_feedforward)
+        self.filtered_surge = float(surge_feedforward)
 
     def compute_action(self, state, goal_2d):
         """

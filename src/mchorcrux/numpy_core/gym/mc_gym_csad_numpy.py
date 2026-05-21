@@ -298,7 +298,7 @@ class McGym(gym.Env):
             eta_start = three2sixDOF(np.array([north0, east0, heading_rad]))
             self.vessel.set_eta(eta_start)
             nu_init = np.zeros(6)
-            nu_init[0] = 0.3 * 0.8  # Set initial surge speed
+            nu_init[0] = float(getattr(self, "initial_surge_speed_mps", 0.0))
             self.vessel.set_nu(nu_init)
 
         if self.wave_conditions is not None:
